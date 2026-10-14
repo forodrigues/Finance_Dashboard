@@ -42,10 +42,10 @@
     <a href="{% url 'finance:transactions' %}" class="{% if url_name == 'transactions' %}active{% endif %}"><i class="bi bi-list-ul"></i><span>Transações</span></a>
     <a href="{% url 'finance:transaction_create' %}" class="nav-add" aria-label="Nova transação"><i class="bi bi-plus-lg"></i></a>
     <a href="{% url 'finance:car' %}" class="{% if url_name == 'car' %}active{% endif %}"><i class="bi bi-car-front"></i><span>Carro</span></a>
-    <a href="{% url 'finance:investments' %}" class="{% if url_name == 'investments' %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Investir</span></a>
     <div class="dropup">
-      <a href="#" data-bs-toggle="dropdown" class="{% if url_name == 'recurring' or url_name == 'categories' %}active{% endif %}"><i class="bi bi-three-dots"></i><span>Mais</span></a>
+      <a href="#" data-bs-toggle="dropdown" class="{% if url_name == 'investments' or url_name == 'recurring' or url_name == 'categories' %}active{% endif %}"><i class="bi bi-three-dots"></i><span>Mais</span></a>
       <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{% url 'finance:investments' %}"><i class="bi bi-graph-up-arrow"></i> Investimentos</a></li>
         <li><a class="dropdown-item" href="{% url 'finance:recurring' %}"><i class="bi bi-arrow-repeat"></i> Recorrentes</a></li>
         <li><a class="dropdown-item" href="{% url 'finance:categories' %}"><i class="bi bi-tags"></i> Categorias</a></li>
         {% if user.is_staff %}

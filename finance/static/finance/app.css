@@ -27,6 +27,9 @@ body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
 }
 .bottom-nav > a i, .bottom-nav > .dropup > a i { font-size: 1.3rem; }
 .bottom-nav > a.active, .bottom-nav > .dropup > a.active { color: var(--series-1); }
+/* Two equal-width items on each side keep the "+" exactly in the middle. */
+.bottom-nav > a:not(.nav-add), .bottom-nav > .dropup { flex: 1 1 0; }
+.bottom-nav > .dropup > a { width: 100%; }
 /* Raised "+" in the middle of the phone nav bar replaces the floating button. */
 .bottom-nav > a.nav-add {
   flex: 0 0 52px; min-width: 52px; height: 52px; margin-top: -18px; border-radius: 50%;
