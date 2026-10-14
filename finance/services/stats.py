@@ -1,5 +1,6 @@
 from collections import defaultdict
-from decimal import Decimal
+from datetime import timedelta
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncMonth
@@ -197,62 +198,104 @@ def cumulative_invested(user, year, month, n=12):
     return result
 
 
-def fuel_consumption(entries):
-    """L/100km per full-tank fill, using the fill-to-fill method.
+# Consumption is the average over this many days up to the end of the selected month.
+CONSUMPTION_WINDOW_DAYS = 90
 
-    `entries` must be ordered by date ascending. A fill only gets a value when it is a full tank with an
-    odometer reading and there is an earlier full tank with an odometer reading. Partial fills in between
-    are added to the litres. If any fill in the interval has unknown litres (no price entered), the value is
-    left out rather than understated.
+
+def fuel_liters(entries):
+    """Litres per fill id as (litres, estimated).
+
+    `entries` must be ordered by date ascending. A fill without a price uses the last price entered before it,
+    since fuel prices move little; its litres are then marked as estimated. Without any earlier price the litres
+    are unknown (None).
     """
     result = {}
-    prev_full = None
-    litres_since = ZERO
-    litres_known = True
+    last_price = None
     for entry in entries:
-        if entry.liters is None:
-            litres_known = False
+        if entry.price_per_liter:
+            last_price = entry.price_per_liter
+            result[entry.id] = (entry.liters, False)
+        elif last_price:
+            liters = (entry.amount / last_price).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            result[entry.id] = (liters, True)
         else:
-            litres_since += entry.liters
-        if not entry.full_tank or entry.odometer_km is None:
+            result[entry.id] = (None, False)
+    return result
+
+
+def fuel_consumption(entries, liters):
+    """Approximate L/100km without needing full tanks.
+
+    Litres bought after the first odometer reading, up to and including the last one, divided by the km between
+    those two readings. Over a few fills the fuel left in the tank evens out, so this converges on the real value.
+    `entries` must be ordered by date ascending; `liters` comes from `fuel_liters`.
+    """
+    positions = [i for i, entry in enumerate(entries) if entry.odometer_km is not None]
+    if len(positions) < 2:
+        return None
+    start, end = entries[positions[0]], entries[positions[-1]]
+    km = end.odometer_km - start.odometer_km
+    if km <= 0:
+        return None
+    counted = entries[positions[0] + 1 : positions[-1] + 1]
+    known = [liters[e.id][0] for e in counted if liters[e.id][0] is not None]
+    return {
+        'value': (sum(known, ZERO) / km * 100).quantize(Decimal('0.01')),
+        'km': km,
+        'fills': len(counted),
+        'incomplete': len(known) < len(counted),
+        'estimated': any(liters[e.id][1] for e in counted),
+    }
+
+
+def km_since_previous(entries):
+    """Km driven since the previous fill with an odometer reading, per fill id."""
+    result = {}
+    previous = None
+    for entry in entries:
+        if entry.odometer_km is None:
             continue
-        if prev_full is not None and litres_known and entry.odometer_km > prev_full.odometer_km:
-            km = entry.odometer_km - prev_full.odometer_km
-            result[entry.id] = (litres_since / km * 100).quantize(Decimal('0.01'))
-        prev_full = entry
-        litres_since = ZERO
-        litres_known = True
+        if previous is not None and entry.odometer_km > previous:
+            result[entry.id] = entry.odometer_km - previous
+        previous = entry.odometer_km
     return result
 
 
 def car_stats(user, year, month):
     first, last = month_bounds(year, month)
     trips = CommuteDay.objects.filter(user=user, date__range=(first, last)).count()
-    fuel_month = list(FuelEntry.objects.filter(user=user, date__range=(first, last)))
+    history = list(FuelEntry.objects.filter(user=user, date__lte=last).order_by('date', 'id'))
+    liters = fuel_liters(history)
+    fuel_month = [f for f in history if f.date >= first]
     fuel_cost = sum((f.total for f in fuel_month), ZERO)
-    priced = [f for f in fuel_month if f.liters is not None]
-    litres = sum((f.liters for f in priced), ZERO)
-    priced_cost = sum((f.amount for f in priced), ZERO)
+    known = [f for f in fuel_month if liters[f.id][0] is not None]
+    litres = sum((liters[f.id][0] for f in known), ZERO)
+    priced = [f for f in fuel_month if f.price_per_liter]
+    priced_litres = sum((f.liters for f in priced), ZERO)
     tolls = TollEntry.objects.filter(user=user, date__range=(first, last)).aggregate(t=Sum('amount'), n=Count('id'))
     toll_cost = tolls['t'] or ZERO
 
-    # Consumption needs the fill before this month, so compute over all history up to month end.
-    consumption = fuel_consumption(FuelEntry.objects.filter(user=user, date__lte=last).order_by('date', 'id'))
-    month_values = [consumption[f.id] for f in fuel_month if f.id in consumption]
-    avg_consumption = (sum(month_values, ZERO) / len(month_values)).quantize(Decimal('0.01')) if month_values else None
+    window_start = last - timedelta(days=CONSUMPTION_WINDOW_DAYS)
+    consumption = fuel_consumption([f for f in history if f.date > window_start], liters)
     total = fuel_cost + toll_cost
     return {
         'trips': trips,
         'fuel_cost': fuel_cost,
         'litres': litres,
+        'litres_estimated': any(liters[f.id][1] for f in fuel_month),
+        'litres_complete': len(known) == len(fuel_month),
         'fills': len(fuel_month),
         'toll_cost': toll_cost,
         'tolls': tolls['n'],
         'total': total,
         'cost_per_trip': (total / trips).quantize(Decimal('0.01')) if trips else None,
-        # Only fills with a price have known litres, so the average uses just those.
-        'avg_price': (priced_cost / litres).quantize(Decimal('0.001')) if litres else None,
-        'litres_complete': len(priced) == len(fuel_month),
-        'consumption': avg_consumption,
-        'consumption_by_entry': consumption,
+        # Average price only from fills where it was actually entered.
+        'avg_price': (sum((f.amount for f in priced), ZERO) / priced_litres).quantize(Decimal('0.001'))
+        if priced_litres
+        else None,
+        'consumption': consumption['value'] if consumption else None,
+        'consumption_info': consumption,
+        'consumption_window_days': CONSUMPTION_WINDOW_DAYS,
+        'liters_by_entry': liters,
+        'km_by_entry': km_since_previous(history),
     }

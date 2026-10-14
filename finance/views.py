@@ -373,7 +373,8 @@ def car(request):
     car_stats = stats.car_stats(user, year, month)
     fuel = list(FuelEntry.objects.filter(user=user, date__range=(first, last)))
     for entry in fuel:
-        entry.consumption = car_stats['consumption_by_entry'].get(entry.id)
+        entry.shown_liters, entry.liters_estimated = car_stats['liters_by_entry'].get(entry.id, (None, False))
+        entry.km_since = car_stats['km_by_entry'].get(entry.id)
     return render(
         request,
         'finance/car.html',

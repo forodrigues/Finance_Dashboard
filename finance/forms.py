@@ -139,8 +139,8 @@ class FuelEntryForm(StyledModelForm):
         fields = ['date', 'amount', 'price_per_liter', 'odometer_km', 'full_tank', 'station']
         widgets = {'date': DateInput()}
         help_texts = {
-            'price_per_liter': 'Opcional. Com o preço, a app calcula os litros.',
-            'odometer_km': 'Opcional. Com os km, o preço e o depósito atestado, a app calcula o consumo (L/100km).',
+            'price_per_liter': 'Opcional. Sem preço, a app usa o preço por litro do último abastecimento.',
+            'odometer_km': 'Regista os km em cada abastecimento para a app calcular o consumo (L/100km).',
         }
 
 

@@ -8,7 +8,7 @@
   <div class="col-6 col-lg-3"><div class="card kpi h-100"><div class="card-body py-2"><div class="label">Idas de carro</div><div class="value num">{{ stats.trips }}</div></div></div></div>
   <div class="col-6 col-lg-3"><div class="card kpi h-100"><div class="card-body py-2"><div class="label">Combustível + portagens</div><div class="value num">{{ stats.total|eur }}</div></div></div></div>
   <div class="col-6 col-lg-3"><div class="card kpi h-100"><div class="card-body py-2"><div class="label">Custo por ida</div><div class="value num">{{ stats.cost_per_trip|eur }}</div></div></div></div>
-  <div class="col-6 col-lg-3"><div class="card kpi h-100"><div class="card-body py-2"><div class="label">Consumo médio</div><div class="value num">{% if stats.consumption %}{{ stats.consumption|num }} L/100km{% else %}—{% endif %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi h-100"><div class="card-body py-2"><div class="label">Consumo médio</div><div class="value num">{% if stats.consumption %}≈ {{ stats.consumption|num }} L/100km{% else %}—{% endif %}</div>{% if stats.consumption_info %}<div class="delta">últimos {{ stats.consumption_window_days }} dias · {{ stats.consumption_info.fills }} abast.</div>{% endif %}</div></div></div>
 </div>
 
 <div class="row g-3">
@@ -46,7 +46,7 @@
       <div class="d-flex align-items-start gap-2 mb-2">
         <div class="me-auto">
           <h2 class="h6 mb-0">Abastecimentos</h2>
-          <div class="small text-body-secondary">{{ stats.fuel_cost|eur }}{% if stats.litres %} · {{ stats.litres|num }} L{% if not stats.litres_complete %}*{% endif %} · {{ stats.avg_price|num:3 }} €/L{% endif %}</div>
+          <div class="small text-body-secondary">{{ stats.fuel_cost|eur }}{% if stats.litres %} · {{ stats.litres|num }} L{% if stats.litres_estimated or not stats.litres_complete %}*{% endif %}{% endif %}{% if stats.avg_price %} · {{ stats.avg_price|num:3 }} €/L{% endif %}</div>
         </div>
         <a href="{% url 'finance:fuel_create' %}" class="btn btn-sm btn-primary text-nowrap"><i class="bi bi-plus-lg"></i> Abastecer</a>
       </div>
@@ -55,8 +55,8 @@
           <a href="{% url 'finance:fuel_update' f.pk %}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 px-0">
             <i class="bi bi-fuel-pump"></i>
             <div class="flex-grow-1 text-truncate">
-              <div>{% if f.liters is not None %}{{ f.liters|num }} L × {{ f.price_per_liter|num:3 }} €/L{% else %}Abastecimento{% endif %}{% if f.station %} · {{ f.station }}{% endif %}</div>
-              <div class="small text-body-secondary">{{ f.date|date:'d/m' }}{% if f.odometer_km %} · {{ f.odometer_km }} km{% endif %}{% if not f.full_tank %} · parcial{% endif %}{% if f.consumption %} · {{ f.consumption|num }} L/100km{% endif %}</div>
+              <div>{% if f.price_per_liter %}{{ f.liters|num }} L × {{ f.price_per_liter|num:3 }} €/L{% elif f.shown_liters %}≈ {{ f.shown_liters|num }} L <span class="small text-body-secondary">(preço estimado)</span>{% else %}Abastecimento{% endif %}{% if f.station %} · {{ f.station }}{% endif %}</div>
+              <div class="small text-body-secondary">{{ f.date|date:'d/m' }}{% if f.odometer_km %} · {{ f.odometer_km }} km{% endif %}{% if f.km_since %} · +{{ f.km_since }} km desde o anterior{% endif %}</div>
             </div>
             <span class="num">{{ f.total|eur }}</span>
           </a>
@@ -82,7 +82,12 @@
         {% empty %}<div class="list-group-item px-0 text-body-secondary">Sem portagens neste mês.</div>{% endfor %}
       </div>
     </div></div>
-    <p class="small text-body-secondary mt-2">O consumo é calculado entre dois abastecimentos atestados com os km e o preço registados.{% if stats.litres and not stats.litres_complete %} * Os litros e o €/L só contam os abastecimentos com preço.{% endif %}</p>
+    <p class="small text-body-secondary mt-2">
+      O consumo é aproximado: litros comprados ÷ km percorridos nos últimos {{ stats.consumption_window_days }} dias.
+      Regista os km em cada abastecimento; fica mais certo a partir de uns 5 abastecimentos.
+      {% if stats.litres_estimated or not stats.litres_complete %}* Sem preço, os litros usam o preço por litro do abastecimento anterior.{% endif %}
+      {% if stats.consumption_info.incomplete %} Há abastecimentos sem preço anterior conhecido: o consumo pode estar abaixo do real.{% endif %}
+    </p>
   </div>
 </div>
 {% endblock %}
