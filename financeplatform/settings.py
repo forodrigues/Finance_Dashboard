@@ -122,6 +122,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+if not DEBUG:
+    # Content-hashed file names (app.3f2a….css), so phones can keep static files cached safely.
+    # Requires `collectstatic` after every deploy.
+    STORAGES = {
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'},
+    }
 
 LOGIN_URL = 'login'
 # Set DJANGO_SIGNUP_ENABLED=0 to close the public sign-up page.

@@ -12,6 +12,14 @@
 }
 
 body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+
+/* Page-loading bar: grows quickly, then slowly, until the next page replaces it. */
+#nav-progress {
+  position: fixed; top: 0; left: 0; z-index: 2000; height: 3px; width: 0;
+  background: var(--series-1); opacity: 0; pointer-events: none;
+}
+#nav-progress.active { opacity: 1; width: 85%; transition: width 2.5s cubic-bezier(.1, .7, .2, 1); }
+.bottom-nav > a:active, .navbar-nav > a:active { color: var(--series-1); }
 @media (min-width: 992px) { body { padding-bottom: 0; } }
 /* Desktop pages with the floating + button need room so it never covers the last row. */
 @media (min-width: 992px) { body.has-fab { padding-bottom: 90px; } }
