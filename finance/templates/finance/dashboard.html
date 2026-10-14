@@ -1,0 +1,178 @@
+{% extends 'finance/base.html' %}
+{% load static finance_tags %}
+{% block title %}Dashboard · Finanças{% endblock %}
+{% block body_class %}has-fab{% endblock %}
+{% block content %}
+{% include 'finance/_month_nav.html' %}
+
+{% if pending_recurring %}
+  <div class="alert alert-info d-flex flex-wrap align-items-center gap-2 py-2">
+    <div class="me-auto">
+      <i class="bi bi-arrow-repeat"></i>
+      {{ pending_recurring|length }} movimento(s) recorrente(s) por lançar este mês:
+      {% for expense, due in pending_recurring %}{{ expense.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+    </div>
+    <form method="post" action="{% url 'finance:generate_recurring' %}?m={{ month_param }}">
+      {% csrf_token %}
+      <button class="btn btn-sm btn-primary" type="submit">Lançar</button>
+    </form>
+  </div>
+{% endif %}
+
+<div class="row g-2 g-md-3 mb-3">
+  <div class="col-6 col-lg">
+    <div class="card kpi h-100"><div class="card-body">
+      <div class="label">Rendimento</div>
+      <div class="value num">{{ current.income|eur }}</div>
+      <div class="delta">mês anterior {{ previous.income|eur }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card kpi h-100"><div class="card-body">
+      <div class="label">Despesas</div>
+      <div class="value num">{{ current.expense|eur }}</div>
+      <div class="delta">mês anterior {{ previous.expense|eur }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card kpi h-100"><div class="card-body">
+      <div class="label">Investido no mês</div>
+      <div class="value num">{{ current.invested|eur }}</div>
+      <div class="delta">total {{ investments_total|eur }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card kpi h-100"><div class="card-body">
+      <div class="label">Sobra (após investir)</div>
+      <div class="value num {% if current.balance < 0 %}text-danger{% endif %}">{{ current.balance|eur }}</div>
+      <div class="delta">poupança {{ current.savings_rate|pct }}</div>
+    </div></div>
+  </div>
+</div>
+
+{% if alerts %}
+  <div class="alert alert-warning py-2">
+    <i class="bi bi-exclamation-triangle"></i> <strong>Acima do habitual:</strong>
+    {% for a in alerts %}{{ a.name }} ({{ a.current|eur }} vs. média de 3 meses {{ a.avg3|eur }}){% if not forloop.last %}; {% endif %}{% endfor %}
+  </div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="card h-100"><div class="card-body">
+      <h2 class="h6">Rendimento vs. despesas — últimos 12 meses</h2>
+      <div class="chart-box tall"><canvas id="chart-income-expense" role="img" aria-label="Gráfico de barras com rendimento e despesas por mês"></canvas></div>
+    </div></div>
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="card h-100"><div class="card-body">
+      <h2 class="h6">Despesas por categoria</h2>
+      {% if chart_data.categories.values %}
+        <div class="chart-box tall"><canvas id="chart-categories" role="img" aria-label="Despesas por categoria neste mês"></canvas></div>
+      {% else %}
+        <p class="text-body-secondary small mb-0">Sem despesas neste mês.</p>
+      {% endif %}
+    </div></div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card h-100"><div class="card-body">
+      <h2 class="h6">Taxa de poupança (%)</h2>
+      <div class="chart-box"><canvas id="chart-savings" role="img" aria-label="Taxa de poupança por mês"></canvas></div>
+    </div></div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card h-100"><div class="card-body">
+      <h2 class="h6">Total investido acumulado</h2>
+      <div class="chart-box"><canvas id="chart-invested" role="img" aria-label="Total investido acumulado por mês"></canvas></div>
+    </div></div>
+  </div>
+
+  <div class="col-12 col-lg-8">
+    <div class="card"><div class="card-body">
+      <h2 class="h6">Categorias: este mês vs. histórico</h2>
+      {% if comparison %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr>
+            <th>Categoria</th><th class="text-end">Este mês</th><th class="text-end d-none d-sm-table-cell">Variação</th>
+            <th class="text-end">Média 3m</th><th class="text-end d-none d-md-table-cell">Média 6m</th><th class="text-end d-none d-md-table-cell">Média 12m</th>
+          </tr></thead>
+          <tbody>
+          {% for r in comparison %}
+            <tr>
+              <td>{% if r.alert %}<i class="bi bi-exclamation-triangle text-warning" title="Acima da média"></i> {% endif %}{{ r.name }}</td>
+              {% with change=r.change_pct %}
+              <td class="text-end num">{{ r.current|eur }}<div class="small text-body-secondary d-sm-none">{% if change is not None %}{% if change > 0 %}+{% endif %}{{ change|pct }}{% else %}—{% endif %}</div></td>
+              <td class="text-end num small d-none d-sm-table-cell">{% if change is not None %}{% if change > 0 %}+{% endif %}{{ change|pct }}{% else %}—{% endif %}</td>
+              {% endwith %}
+              <td class="text-end num">{{ r.avg3|eur }}</td>
+              <td class="text-end num d-none d-md-table-cell">{{ r.avg6|eur }}</td>
+              <td class="text-end num d-none d-md-table-cell">{{ r.avg12|eur }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}<p class="text-body-secondary small mb-0">Ainda sem despesas registadas.</p>{% endif %}
+    </div></div>
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Top 5 despesas do mês</h2>
+      <ol class="list-unstyled mb-0">
+        {% for r in top_categories %}
+          <li class="d-flex justify-content-between py-1 border-bottom"><span>{{ forloop.counter }}. {{ r.name }}</span><span class="num">{{ r.current|eur }}</span></li>
+        {% empty %}<li class="text-body-secondary small">Sem despesas.</li>{% endfor %}
+      </ol>
+    </div></div>
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Previsto para {{ next_month_label }}</h2>
+      <div class="row g-2">
+        <div class="col-6 kpi">
+          <div class="label">Rendimento fixo</div>
+          <div class="value num">{{ income_next_total|eur }}</div>
+          <div class="delta">{{ income_next_count }} recorrente(s)</div>
+        </div>
+        <div class="col-6 kpi">
+          <div class="label">Despesas fixas</div>
+          <div class="value num">{{ fixed_next_total|eur }}</div>
+          <div class="delta">{{ fixed_next_count }} recorrente(s)</div>
+        </div>
+      </div>
+      <a class="small" href="{% url 'finance:recurring' %}">Ver recorrentes</a>
+    </div></div>
+    <div class="card"><div class="card-body">
+      <h2 class="h6"><i class="bi bi-car-front"></i> Carro este mês</h2>
+      <dl class="row mb-0 small">
+        <dt class="col-7 fw-normal text-body-secondary">Idas de carro</dt><dd class="col-5 text-end num">{{ car.trips }}</dd>
+        <dt class="col-7 fw-normal text-body-secondary">Combustível</dt><dd class="col-5 text-end num">{{ car.fuel_cost|eur }}</dd>
+        <dt class="col-7 fw-normal text-body-secondary">Portagens</dt><dd class="col-5 text-end num">{{ car.toll_cost|eur }}</dd>
+        <dt class="col-7 fw-normal text-body-secondary">Custo por ida</dt><dd class="col-5 text-end num mb-0">{{ car.cost_per_trip|eur }}</dd>
+      </dl>
+    </div></div>
+  </div>
+</div>
+
+{{ chart_data|json_script:'chart-data' }}
+<a href="{% url 'finance:transaction_create' %}" class="btn btn-primary fab d-none d-lg-flex" aria-label="Nova transação"><i class="bi bi-plus-lg"></i></a>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+<script src="{% static 'finance/charts.js' %}"></script>
+<script>
+  (function () {
+    const d = JSON.parse(document.getElementById('chart-data').textContent);
+    const C = window.FinanceCharts;
+    C.bars(document.getElementById('chart-income-expense'), d.labels, [
+      { label: 'Rendimento', data: d.income, backgroundColor: C.css('--series-1') },
+      { label: 'Despesas', data: d.expense, backgroundColor: C.css('--series-2') },
+    ]);
+    C.line(document.getElementById('chart-savings'), d.labels, { label: 'Taxa de poupança', data: d.savingsRate }, { percent: true });
+    C.line(document.getElementById('chart-invested'), d.labels, { label: 'Total investido', data: d.cumulativeInvested, fill: true, backgroundColor: C.css('--series-1') + '22' });
+    const cat = document.getElementById('chart-categories');
+    if (cat) C.horizontalBars(cat, d.categories.labels, d.categories.values, 'Despesas');
+  })();
+</script>
+{% endblock %}

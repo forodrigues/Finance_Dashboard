@@ -1,0 +1,8 @@
+line-length = 120
+extend-exclude = ["finance/migrations", "*.md"]
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ"]
+
+[format]
+quote-style = "single"

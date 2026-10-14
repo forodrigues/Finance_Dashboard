@@ -1,0 +1,14 @@
+{% extends 'finance/base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <h1 class="h4 mb-3">Apagar?</h1>
+    <p>Vais apagar <strong>{{ object }}</strong>. Não dá para desfazer.</p>
+    <form method="post" class="d-flex gap-2">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">Apagar</button>
+      <a href="{{ request.META.HTTP_REFERER|default:'/' }}" class="btn btn-outline-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

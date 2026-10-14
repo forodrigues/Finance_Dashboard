@@ -1,0 +1,88 @@
+{% extends 'finance/base.html' %}
+{% load finance_tags %}
+{% block title %}Carro · Finanças{% endblock %}
+{% block content %}
+{% include 'finance/_month_nav.html' %}
+
+<div class="row g-2 mb-3">
+  <div class="col-6 col-lg-3"><div class="card kpi h-100"><div class="card-body py-2"><div class="label">Idas de carro</div><div class="value num">{{ stats.trips }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi h-100"><div class="card-body py-2"><div class="label">Combustível + portagens</div><div class="value num">{{ stats.total|eur }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi h-100"><div class="card-body py-2"><div class="label">Custo por ida</div><div class="value num">{{ stats.cost_per_trip|eur }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card kpi h-100"><div class="card-body py-2"><div class="label">Consumo médio</div><div class="value num">{% if stats.consumption %}{{ stats.consumption|num }} L/100km{% else %}—{% endif %}</div></div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-5">
+    <div class="card"><div class="card-body">
+      <h2 class="h6">Dias em que foste de carro para o trabalho</h2>
+      <p class="small text-body-secondary">Toca num dia para marcar ou desmarcar.</p>
+      <form method="post" action="{% url 'finance:toggle_commute' %}">
+        {% csrf_token %}
+        <table class="cal">
+          <thead><tr>{% for d in weekdays %}<th>{{ d }}</th>{% endfor %}</tr></thead>
+          <tbody>
+          {% for week in weeks %}
+            <tr>
+              {% for day in week %}
+                <td>
+                  <button type="submit" name="date" value="{{ day.date|date:'Y-m-d' }}"
+                          class="{% if not day.in_month %}out{% endif %} {% if day.driven %}driven{% endif %} {% if day.date == today %}today{% endif %}"
+                          aria-pressed="{% if day.driven %}true{% else %}false{% endif %}"
+                          aria-label="{{ day.date|date:'j \d\e F' }}{% if day.driven %}, foste de carro{% endif %}">
+                    {{ day.date.day }}{% if day.driven %}<i class="bi bi-car-front-fill"></i>{% endif %}
+                  </button>
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </form>
+    </div></div>
+  </div>
+
+  <div class="col-12 col-lg-7">
+    <div class="card mb-3"><div class="card-body">
+      <div class="d-flex align-items-start gap-2 mb-2">
+        <div class="me-auto">
+          <h2 class="h6 mb-0">Abastecimentos</h2>
+          <div class="small text-body-secondary">{{ stats.fuel_cost|eur }}{% if stats.litres %} · {{ stats.litres|num }} L{% if not stats.litres_complete %}*{% endif %} · {{ stats.avg_price|num:3 }} €/L{% endif %}</div>
+        </div>
+        <a href="{% url 'finance:fuel_create' %}" class="btn btn-sm btn-primary text-nowrap"><i class="bi bi-plus-lg"></i> Abastecer</a>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for f in fuel %}
+          <a href="{% url 'finance:fuel_update' f.pk %}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 px-0">
+            <i class="bi bi-fuel-pump"></i>
+            <div class="flex-grow-1 text-truncate">
+              <div>{% if f.liters is not None %}{{ f.liters|num }} L × {{ f.price_per_liter|num:3 }} €/L{% else %}Abastecimento{% endif %}{% if f.station %} · {{ f.station }}{% endif %}</div>
+              <div class="small text-body-secondary">{{ f.date|date:'d/m' }}{% if f.odometer_km %} · {{ f.odometer_km }} km{% endif %}{% if not f.full_tank %} · parcial{% endif %}{% if f.consumption %} · {{ f.consumption|num }} L/100km{% endif %}</div>
+            </div>
+            <span class="num">{{ f.total|eur }}</span>
+          </a>
+        {% empty %}<div class="list-group-item px-0 text-body-secondary">Sem abastecimentos neste mês.</div>{% endfor %}
+      </div>
+    </div></div>
+
+    <div class="card"><div class="card-body">
+      <div class="d-flex align-items-start gap-2 mb-2">
+        <div class="me-auto">
+          <h2 class="h6 mb-0">Portagens</h2>
+          <div class="small text-body-secondary">{{ stats.toll_cost|eur }}</div>
+        </div>
+        <a href="{% url 'finance:toll_create' %}" class="btn btn-sm btn-primary text-nowrap"><i class="bi bi-plus-lg"></i> Portagem</a>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for t in tolls %}
+          <a href="{% url 'finance:toll_update' t.pk %}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 px-0">
+            <i class="bi bi-sign-turn-right"></i>
+            <div class="flex-grow-1 text-truncate">{{ t.description|default:'Portagem' }} <span class="small text-body-secondary">{{ t.date|date:'d/m' }}</span></div>
+            <span class="num">{{ t.amount|eur }}</span>
+          </a>
+        {% empty %}<div class="list-group-item px-0 text-body-secondary">Sem portagens neste mês.</div>{% endfor %}
+      </div>
+    </div></div>
+    <p class="small text-body-secondary mt-2">O consumo é calculado entre dois abastecimentos atestados com os km e o preço registados.{% if stats.litres and not stats.litres_complete %} * Os litros e o €/L só contam os abastecimentos com preço.{% endif %}</p>
+  </div>
+</div>
+{% endblock %}

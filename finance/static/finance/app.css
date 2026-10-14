@@ -1,0 +1,113 @@
+:root {
+  --series-1: #2a78d6;  /* rendimento / série principal */
+  --series-2: #eb6834;  /* despesas */
+  --chart-text: #52514e;
+  --chart-grid: rgba(0, 0, 0, .08);
+}
+[data-bs-theme="dark"] {
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --chart-text: #c3c2b7;
+  --chart-grid: rgba(255, 255, 255, .1);
+}
+
+body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+@media (min-width: 992px) { body { padding-bottom: 0; } }
+/* Desktop pages with the floating + button need room so it never covers the last row. */
+@media (min-width: 992px) { body.has-fab { padding-bottom: 90px; } }
+
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 1030;
+  display: flex; justify-content: space-around;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+}
+.bottom-nav > a, .bottom-nav > .dropup > a {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font-size: .72rem; color: var(--bs-secondary-color); text-decoration: none; min-width: 60px;
+}
+.bottom-nav > a i, .bottom-nav > .dropup > a i { font-size: 1.3rem; }
+.bottom-nav > a.active, .bottom-nav > .dropup > a.active { color: var(--series-1); }
+/* Raised "+" in the middle of the phone nav bar replaces the floating button. */
+.bottom-nav > a.nav-add {
+  flex: 0 0 52px; min-width: 52px; height: 52px; margin-top: -18px; border-radius: 50%;
+  justify-content: center; background: var(--series-1); color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,.25);
+}
+.bottom-nav > a.nav-add i { font-size: 1.5rem; }
+
+.fab {
+  position: fixed; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 1020;
+  width: 56px; height: 56px; border-radius: 50%; font-size: 1.6rem;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,.25);
+}
+@media (min-width: 992px) { .fab { bottom: 24px; } }
+
+.kpi .label { font-size: .8rem; color: var(--bs-secondary-color); }
+.kpi .value { font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 575.98px) { .kpi .value { font-size: 1.1rem; } }
+.kpi .delta { font-size: .78rem; color: var(--bs-secondary-color); }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cat-dot { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; margin-right: .35rem; }
+.chart-box { position: relative; height: 260px; }
+.chart-box.tall { height: 320px; }
+
+.month-nav { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.month-nav h1 { font-size: 1.25rem; margin: 0; text-transform: capitalize; }
+
+.cal { width: 100%; table-layout: fixed; }
+.cal th { text-align: center; font-size: .75rem; color: var(--bs-secondary-color); font-weight: 500; }
+.cal td { padding: 3px; }
+.cal button {
+  width: 100%; aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--bs-border-color);
+  background: transparent; color: inherit; font-variant-numeric: tabular-nums;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
+}
+.cal button.out { opacity: .35; }
+.cal button.today { border-color: var(--series-1); border-width: 2px; }
+.cal button.driven { background: var(--series-1); color: #fff; border-color: var(--series-1); }
+.cal button i { font-size: .8rem; margin-top: 2px; }
+
+/* Login and sign-up */
+body.login-page {
+  min-height: 100vh; padding-bottom: 0;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(42, 120, 214, .18), transparent 45%),
+    radial-gradient(circle at 85% 90%, rgba(27, 175, 122, .14), transparent 45%),
+    var(--bs-tertiary-bg);
+}
+.login-wrap { min-height: calc(100vh - 2rem); display: flex; align-items: center; justify-content: center; }
+.login-card {
+  width: 100%; max-width: 400px; border-radius: 1.25rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .08), 0 2px 8px rgba(0, 0, 0, .04);
+}
+[data-bs-theme="dark"] .login-card { box-shadow: 0 10px 40px rgba(0, 0, 0, .5); }
+.login-card .form-label { font-size: .85rem; font-weight: 600; margin-bottom: .35rem; }
+.login-card .form-control {
+  height: 3rem; border-radius: .75rem; background-color: var(--bs-tertiary-bg);
+  border-color: var(--bs-border-color-translucent);
+}
+.login-card .form-control:focus { background-color: var(--bs-body-bg); }
+/* Chrome autofill paints fields light blue; keep them looking like the other fields. */
+.login-card .form-control:-webkit-autofill,
+.login-card .form-control:-webkit-autofill:hover,
+.login-card .form-control:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 100px var(--bs-tertiary-bg) inset;
+  -webkit-text-fill-color: var(--bs-body-color);
+  caret-color: var(--bs-body-color);
+  transition: background-color 9999s ease-out;
+}
+.login-card .btn-lg { border-radius: .75rem; font-weight: 600; height: 3rem; font-size: 1rem; }
+
+/* Icon inside the field, on the left; optional show-password button on the right. */
+.input-icon { position: relative; }
+.input-icon > .bi {
+  position: absolute; left: .95rem; top: 50%; transform: translateY(-50%);
+  color: var(--bs-secondary-color); pointer-events: none; z-index: 5;
+}
+.input-icon > .form-control { padding-left: 2.6rem; }
+.input-icon > .form-control.has-toggle { padding-right: 2.8rem; }
+.password-toggle {
+  position: absolute; right: .4rem; top: 50%; transform: translateY(-50%); z-index: 5;
+  border: 0; background: transparent; padding: .35rem .5rem; border-radius: .5rem;
+  color: var(--bs-secondary-color); font-size: 1.1rem; line-height: 1;
+}
+.password-toggle:hover { color: var(--bs-body-color); }

@@ -1,0 +1,69 @@
+{% extends 'finance/base.html' %}
+{% load static %}
+{% block title %}Criar conta · Finanças{% endblock %}
+{% block body_class %}login-page{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <div class="login-card card border-0">
+    <div class="card-body p-4 p-sm-5">
+      <div class="text-center mb-4">
+        <img src="{% static 'finance/icon.svg' %}" alt="" width="56" height="56" class="mb-3">
+        <h1 class="h4 fw-semibold mb-1">Criar conta</h1>
+        <p class="text-body-secondary small mb-0">Os teus dados ficam só na tua conta.</p>
+      </div>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}
+          <div class="alert alert-danger py-2 small" role="alert">{{ error }}</div>
+        {% endfor %}
+
+        <div class="mb-3">
+          <label class="form-label" for="id_username">Utilizador</label>
+          <div class="input-icon">
+            <i class="bi bi-person" aria-hidden="true"></i>
+            <input class="form-control {% if form.username.errors %}is-invalid{% endif %}" type="text" name="username"
+                   id="id_username" value="{{ form.username.value|default:'' }}" maxlength="150"
+                   autocomplete="username" autocapitalize="none" required autofocus>
+          </div>
+          {% for error in form.username.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="id_password1">Palavra-passe</label>
+          <div class="input-icon">
+            <i class="bi bi-lock" aria-hidden="true"></i>
+            <input class="form-control has-toggle {% if form.password1.errors %}is-invalid{% endif %}" type="password"
+                   name="password1" id="id_password1" autocomplete="new-password" required>
+            <button type="button" class="password-toggle" data-target="id_password1"
+                    aria-label="Mostrar palavra-passe" aria-pressed="false"><i class="bi bi-eye"></i></button>
+          </div>
+          {% for error in form.password1.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label" for="id_password2">Confirmar palavra-passe</label>
+          <div class="input-icon">
+            <i class="bi bi-lock" aria-hidden="true"></i>
+            <input class="form-control has-toggle {% if form.password2.errors %}is-invalid{% endif %}" type="password"
+                   name="password2" id="id_password2" autocomplete="new-password" required>
+            <button type="button" class="password-toggle" data-target="id_password2"
+                    aria-label="Mostrar palavra-passe" aria-pressed="false"><i class="bi bi-eye"></i></button>
+          </div>
+          {% for error in form.password2.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <p class="form-text small mb-4">Pelo menos 8 caracteres, não só números e diferente do utilizador.</p>
+
+        <button class="btn btn-primary btn-lg w-100" type="submit">Criar conta</button>
+      </form>
+      <p class="text-center small text-body-secondary mt-4 mb-0">
+        Já tens conta? <a href="{% url 'login' %}" class="fw-semibold">Entrar</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'finance/auth.js' %}"></script>
+{% endblock %}

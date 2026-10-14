@@ -1,0 +1,24 @@
+{% extends 'finance/base.html' %}
+{% block title %}Categorias · Finanças{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h1 class="h4 mb-0 me-auto">Categorias</h1>
+  <a href="{% url 'finance:category_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Nova</a>
+</div>
+{% regroup categories by get_kind_display as groups %}
+{% for group in groups %}
+  <h2 class="h6 text-body-secondary mt-3">{{ group.grouper }}</h2>
+  <div class="list-group">
+    {% for c in group.list %}
+      <div class="list-group-item d-flex align-items-center gap-2">
+        <span class="cat-dot" style="background: {{ c.color }}"></span>
+        {% if c.icon %}<i class="bi bi-{{ c.icon }}"></i>{% endif %}
+        <span class="me-auto">{{ c.name }}</span>
+        <a href="{% url 'finance:transactions' %}?category={{ c.id }}" class="btn btn-sm btn-link" aria-label="Ver transações"><i class="bi bi-list-ul"></i></a>
+        <a href="{% url 'finance:category_update' c.pk %}" class="btn btn-sm btn-outline-secondary" aria-label="Editar"><i class="bi bi-pencil"></i></a>
+        <a href="{% url 'finance:category_delete' c.pk %}" class="btn btn-sm btn-outline-danger" aria-label="Apagar"><i class="bi bi-trash"></i></a>
+      </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+{% endblock %}

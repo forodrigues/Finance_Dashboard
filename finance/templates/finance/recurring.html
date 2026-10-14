@@ -1,0 +1,37 @@
+{% extends 'finance/base.html' %}
+{% load finance_tags %}
+{% block title %}Recorrentes · Finanças{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h1 class="h4 mb-0 me-auto">Recorrentes</h1>
+  <a href="{% url 'finance:recurring_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Novo</a>
+</div>
+<div class="row g-2 mb-1">
+  <div class="col-6"><div class="card kpi h-100"><div class="card-body py-2">
+    <div class="label">Rendimento fixo mensal</div>
+    <div class="value num text-success">{{ monthly_income|eur }}</div>
+  </div></div></div>
+  <div class="col-6"><div class="card kpi h-100"><div class="card-body py-2">
+    <div class="label">Custo fixo mensal</div>
+    <div class="value num">{{ monthly_total|eur }}</div>
+  </div></div></div>
+</div>
+<p class="small text-body-secondary mb-3">Os anuais contam dividido por 12.</p>
+<div class="list-group">
+  {% for r in items %}
+    <div class="list-group-item d-flex align-items-center gap-2 {% if not r.active %}opacity-50{% endif %}">
+      <span class="cat-dot" style="background: {{ r.category.color }}"></span>
+      <div class="flex-grow-1 text-truncate">
+        <div>{{ r.name }}{% if not r.active %} <span class="badge text-bg-secondary">inativo</span>{% endif %}</div>
+        <div class="small text-body-secondary">{{ r.get_frequency_display }} · dia {{ r.day_of_month }}{% if r.frequency == 'yearly' %} de {{ r.start_date|date:'F' }}{% endif %} · {{ r.category.name }}</div>
+      </div>
+      <span class="num {% if r.category.kind == 'income' %}text-success{% endif %}">{% if r.category.kind == 'income' %}+{% else %}−{% endif %}{{ r.amount|eur }}</span>
+      <a href="{% url 'finance:recurring_update' r.pk %}" class="btn btn-sm btn-outline-secondary" aria-label="Editar"><i class="bi bi-pencil"></i></a>
+      <a href="{% url 'finance:recurring_delete' r.pk %}" class="btn btn-sm btn-outline-danger" aria-label="Apagar"><i class="bi bi-trash"></i></a>
+    </div>
+  {% empty %}
+    <div class="list-group-item text-body-secondary">Ainda não tens recorrentes. Adiciona o salário, o telemóvel, o ginásio, a renda…</div>
+  {% endfor %}
+</div>
+<p class="small text-body-secondary mt-2">Os rendimentos e despesas de cada mês são lançados como transações no Dashboard, com o botão "Lançar".</p>
+{% endblock %}

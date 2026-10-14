@@ -1,0 +1,98 @@
+{% extends 'finance/base.html' %}
+{% load static finance_tags %}
+{% block title %}Investimentos · Finanças{% endblock %}
+{% block content %}
+<div class="d-md-flex align-items-center gap-2 mb-3">
+  <h1 class="h4 mb-2 mb-md-0 me-auto">Investimentos</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'finance:movement_create' %}" class="btn btn-primary btn-sm flex-fill text-nowrap"><i class="bi bi-plus-lg"></i> Movimento</a>
+    <a href="{% url 'finance:valuation_create' %}" class="btn btn-outline-primary btn-sm flex-fill text-nowrap"><i class="bi bi-cash-coin"></i> Valor atual</a>
+    <a href="{% url 'finance:asset_create' %}" class="btn btn-outline-primary btn-sm flex-fill text-nowrap"><i class="bi bi-plus-lg"></i> Ativo</a>
+  </div>
+</div>
+
+<div class="row g-2 mb-2">
+  <div class="col-6 col-md-4"><div class="card kpi h-100"><div class="card-body py-2"><div class="label">Investido</div><div class="value num">{{ total_invested|eur }}</div></div></div></div>
+  <div class="col-6 col-md-4"><div class="card kpi h-100"><div class="card-body py-2"><div class="label">Valor atual</div><div class="value num">{{ total_value|eur }}</div></div></div></div>
+  <div class="col-12 col-md-4"><div class="card kpi h-100"><div class="card-body py-2"><div class="label">Ganho</div><div class="value num {% if total_gain < 0 %}text-danger{% elif total_gain > 0 %}text-success{% endif %}">{{ total_gain|eur }}</div></div></div></div>
+</div>
+<p class="small text-body-secondary">O valor atual e o ganho só contam os ativos a que registaste um valor atual.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-12 col-lg-7"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Total investido acumulado — últimos 12 meses</h2>
+    <div class="chart-box"><canvas id="chart-cumulative" role="img" aria-label="Total investido acumulado"></canvas></div>
+  </div></div></div>
+  <div class="col-12 col-lg-5"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Investido por tipo</h2>
+    {% if chart_data.kinds.values %}
+      <div class="chart-box"><canvas id="chart-kinds" role="img" aria-label="Total investido por tipo de ativo"></canvas></div>
+    {% else %}<p class="text-body-secondary small mb-0">Sem investimentos.</p>{% endif %}
+  </div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-body">
+  <h2 class="h6">Por ativo</h2>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Ativo</th><th class="d-none d-md-table-cell">Tipo</th><th class="text-end">Investido</th><th class="text-end">Valor</th><th class="text-end">Ganho</th></tr></thead>
+      <tbody>
+      {% for r in summary %}
+        <tr>
+          <td><a href="{% url 'finance:asset_update' r.asset.pk %}">{{ r.asset.name }}</a></td>
+          <td class="d-none d-md-table-cell">{{ r.asset.get_kind_display }}</td>
+          <td class="text-end num">{{ r.invested|eur }}</td>
+          <td class="text-end num">{{ r.value|eur }}{% if r.value_date %}<div class="small text-body-secondary">{{ r.value_date|date:'d/m/y' }}</div>{% endif %}</td>
+          <td class="text-end num {% if r.gain < 0 %}text-danger{% elif r.gain > 0 %}text-success{% endif %}">{{ r.gain|eur }}{% if r.gain_pct is not None %}<div class="small">{{ r.gain_pct|pct }}</div>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-body-secondary">Cria um ativo (ex.: um ETF, um PPR ou Certificados de Aforro) e depois regista os movimentos.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div></div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-7">
+    <h2 class="h6">Últimos movimentos</h2>
+    <div class="list-group">
+      {% for mv in movements %}
+        <a href="{% url 'finance:movement_update' mv.pk %}" class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+          <div class="flex-grow-1 text-truncate">
+            <div>{{ mv.asset.name }}</div>
+            <div class="small text-body-secondary">{{ mv.date|date:'d/m/Y' }} · {{ mv.get_kind_display }}{% if mv.note %} · {{ mv.note }}{% endif %}</div>
+          </div>
+          <span class="num">{% if mv.kind == 'sell' %}−{% else %}+{% endif %}{{ mv.amount|eur }}</span>
+        </a>
+      {% empty %}<div class="list-group-item text-body-secondary">Sem movimentos.</div>{% endfor %}
+    </div>
+  </div>
+  <div class="col-12 col-lg-5">
+    <h2 class="h6">Valores registados</h2>
+    <div class="list-group">
+      {% for v in valuations %}
+        <a href="{% url 'finance:valuation_update' v.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between">
+          <span>{{ v.asset.name }} <span class="small text-body-secondary">{{ v.date|date:'d/m/Y' }}</span></span>
+          <span class="num">{{ v.value|eur }}</span>
+        </a>
+      {% empty %}<div class="list-group-item text-body-secondary">Sem valores registados.</div>{% endfor %}
+    </div>
+  </div>
+</div>
+{{ chart_data|json_script:'chart-data' }}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+<script src="{% static 'finance/charts.js' %}"></script>
+<script>
+  (function () {
+    const d = JSON.parse(document.getElementById('chart-data').textContent);
+    const C = window.FinanceCharts;
+    C.line(document.getElementById('chart-cumulative'), d.labels, { label: 'Total investido', data: d.cumulative, fill: true, backgroundColor: C.css('--series-1') + '22' });
+    const kinds = document.getElementById('chart-kinds');
+    if (kinds) C.horizontalBars(kinds, d.kinds.labels, d.kinds.values, 'Investido');
+  })();
+</script>
+{% endblock %}

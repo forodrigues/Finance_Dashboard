@@ -1,0 +1,42 @@
+{% extends 'finance/base.html' %}
+{% load finance_tags %}
+{% block title %}Transações · Finanças{% endblock %}
+{% block body_class %}has-fab{% endblock %}
+{% block content %}
+{% if category_id %}{% with extra_query='&category='|add:category_id %}{% include 'finance/_month_nav.html' %}{% endwith %}{% else %}{% include 'finance/_month_nav.html' %}{% endif %}
+
+<form method="get" class="d-flex gap-2 mb-3">
+  <input type="hidden" name="m" value="{{ month_param }}">
+  <select name="category" class="form-select" onchange="this.form.submit()" aria-label="Filtrar por categoria">
+    <option value="">Todas as categorias</option>
+    {% for c in categories %}<option value="{{ c.id }}" {% if c.id|stringformat:'s' == category_id %}selected{% endif %}>{{ c.name }} ({{ c.get_kind_display|lower }})</option>{% endfor %}
+  </select>
+</form>
+
+<div class="row g-2 mb-3">
+  <div class="col-6"><div class="card kpi"><div class="card-body py-2"><div class="label">Rendimento</div><div class="value num">{{ income_total|eur }}</div></div></div></div>
+  <div class="col-6"><div class="card kpi"><div class="card-body py-2"><div class="label">Despesas</div><div class="value num">{{ expense_total|eur }}</div></div></div></div>
+</div>
+
+<div class="list-group">
+  {% for t in transactions %}
+    {% if t.fuelentry or t.tollentry %}
+      <a href="{% url 'finance:car' %}?m={{ month_param }}" class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+    {% else %}
+      <a href="{% url 'finance:transaction_update' t.pk %}" class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+    {% endif %}
+      <span class="cat-dot" style="background: {{ t.category.color }}"></span>
+      <div class="flex-grow-1 text-truncate">
+        <div class="text-truncate">{{ t.description|default:t.category.name }}</div>
+        <div class="small text-body-secondary">{{ t.date|date:'d/m' }} · {{ t.category.name }}{% if t.recurring_id %} · <i class="bi bi-arrow-repeat"></i>{% endif %}{% if t.fuelentry or t.tollentry %} · <i class="bi bi-car-front"></i>{% endif %}</div>
+      </div>
+      <span class="num {% if t.category.kind == 'income' %}text-success{% endif %}">{% if t.category.kind == 'income' %}+{% else %}−{% endif %}{{ t.amount|eur }}</span>
+    </a>
+  {% empty %}
+    <div class="list-group-item text-body-secondary">Sem transações neste mês.</div>
+  {% endfor %}
+</div>
+<p class="small text-body-secondary mt-2">Toca numa transação para a editar ou apagar. As despesas do carro editam-se na página Carro.</p>
+
+<a href="{% url 'finance:transaction_create' %}" class="btn btn-primary fab d-none d-lg-flex" aria-label="Nova transação"><i class="bi bi-plus-lg"></i></a>
+{% endblock %}

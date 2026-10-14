@@ -1,0 +1,59 @@
+{% extends 'finance/base.html' %}
+{% load static %}
+{% block title %}Entrar · Finanças{% endblock %}
+{% block body_class %}login-page{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <div class="login-card card border-0">
+    <div class="card-body p-4 p-sm-5">
+      <div class="text-center mb-4">
+        <img src="{% static 'finance/icon.svg' %}" alt="" width="56" height="56" class="mb-3">
+        <h1 class="h4 fw-semibold mb-1">Bem-vindo de volta</h1>
+        <p class="text-body-secondary small mb-0">Entra para veres as tuas finanças.</p>
+      </div>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.errors %}
+          <div class="alert alert-danger py-2 small d-flex align-items-center gap-2" role="alert">
+            <i class="bi bi-exclamation-circle"></i> Utilizador ou palavra-passe errados.
+          </div>
+        {% endif %}
+
+        <div class="mb-3">
+          <label class="form-label" for="id_username">Utilizador</label>
+          <div class="input-icon">
+            <i class="bi bi-person" aria-hidden="true"></i>
+            <input class="form-control" type="text" name="username" id="id_username"
+                   value="{{ form.username.value|default:'' }}" autocomplete="username" autocapitalize="none"
+                   required autofocus>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label" for="id_password">Palavra-passe</label>
+          <div class="input-icon">
+            <i class="bi bi-lock" aria-hidden="true"></i>
+            <input class="form-control has-toggle" type="password" name="password" id="id_password"
+                   autocomplete="current-password" required>
+            <button type="button" class="password-toggle" data-target="id_password"
+                    aria-label="Mostrar palavra-passe" aria-pressed="false"><i class="bi bi-eye"></i></button>
+          </div>
+        </div>
+
+        <input type="hidden" name="next" value="{{ next }}">
+        <button class="btn btn-primary btn-lg w-100" type="submit">Entrar</button>
+      </form>
+      {% if signup_enabled %}
+        <p class="text-center small text-body-secondary mt-4 mb-0">
+          Ainda não tens conta? <a href="{% url 'register' %}" class="fw-semibold">Criar conta</a>
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'finance/auth.js' %}"></script>
+{% endblock %}

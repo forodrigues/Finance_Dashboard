@@ -1,0 +1,55 @@
+{% extends 'finance/base.html' %}
+{% block title %}{{ title }} · Finanças{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <h1 class="h4 mb-3">{{ title }}</h1>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for error in form.non_field_errors %}<div class="alert alert-danger py-2">{{ error }}</div>{% endfor %}
+      {% for field in form %}
+        {% if field.widget_type == 'checkbox' %}
+          <div class="form-check mb-3">
+            {{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+          </div>
+        {% else %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+          </div>
+        {% endif %}
+      {% endfor %}
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-grow-1 flex-md-grow-0">Guardar</button>
+        <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancelar</a>
+        {% if delete_url %}<a href="{{ delete_url }}" class="btn btn-outline-danger ms-auto" aria-label="Apagar"><i class="bi bi-trash"></i> Apagar</a>{% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Fuel form: show the litres implied by amount paid and price per litre.
+  (function () {
+    const amount = document.getElementById('id_amount');
+    const price = document.getElementById('id_price_per_liter');
+    if (!amount || !price) return;
+    const hint = document.createElement('div');
+    hint.className = 'form-text fw-semibold';
+    price.insertAdjacentElement('afterend', hint);
+    const parse = (el) => parseFloat(el.value.replace(/\s/g, '').replace(',', '.'));
+    const update = () => {
+      const a = parse(amount), p = parse(price);
+      hint.textContent = a > 0 && p > 0
+        ? `≈ ${(a / p).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} L` : '';
+    };
+    amount.addEventListener('input', update);
+    price.addEventListener('input', update);
+    update();
+  })();
+</script>
+{% endblock %}
